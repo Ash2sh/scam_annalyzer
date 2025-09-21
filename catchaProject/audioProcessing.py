@@ -17,6 +17,7 @@ from catchaProject.config import (
 )
 
 BATCH_SIZE = 16
+SAMPLERATE = 16000
 
 
 def load_whisper_model():
@@ -26,14 +27,15 @@ def load_whisper_model():
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
     return whisperx.load_model(
-        WHISPER_MODEL_NAME, device=TORCH_DEVICE, download_root=DOWNLOAD_ROOT
+        WHISPER_MODEL_NAME, device=TORCH_DEVICE.type, download_root=DOWNLOAD_ROOT
     )
+
 
 
 class Audio:
     def __init__(self, path: str):
         self.path = path
-        self.sr = 16000
+        self.sr = SAMPLERATE
         self._y: np.ndarray = whisperx.load_audio(self.path, self.sr)
         self.dialogue = []
 
@@ -99,7 +101,7 @@ class AudioProcessor:
             transcription["segments"],
             model_a,
             metadata,
-            self.audio,
+            y,
             TORCH_DEVICE,
             return_char_alignments=False,
         )
@@ -119,13 +121,11 @@ class AudioProcessor:
         start_time = segment["start"]
         end_time = segment["end"]
 
-        start_sample = int(start_time * self.sr)
-        end_sample = int(end_time * self.sr)
+        start_sample = int(start_time * SAMPLERATE)
+        end_sample = int(end_time * SAMPLERATE)
 
         segment_audio = y[start_sample:end_sample]
-        audio_feats = self.extract_audio_features(
-            segment_audio, self.sr, segment["text"]
-        )
+        audio_feats = self.extract_audio_features(segment_audio, SAMPLERATE, segment["text"])
 
         entry = {
             "speaker": speaker,
@@ -138,7 +138,7 @@ class AudioProcessor:
 
         return entry
 
-    def extract_audio_features(audio, sample_rate, transcript):
+    def extract_audio_features(self, audio, sample_rate, transcript):
         """
         Извлечение аудио признаков
         """

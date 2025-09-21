@@ -15,6 +15,14 @@ model_name = "small"  # tiny, base, small, medium, large
 [diarization]
 model_name = "pyannote/speaker-diarization-3.1"
 
+[dataset]
+train = "data/dataset/test.csv"
+test = "data/dataset/multi-agent_conversation_all.csv"
+
+[bert]
+model = "bert/Model"
+tokenizer = "bert/Tokenizer"
+
 [llm]
 model_name = "deepseek/deepseek-chat-v3.1:free"
 base_url = "https://openrouter.ai/api/v1/chat/completions"

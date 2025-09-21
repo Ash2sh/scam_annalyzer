@@ -211,3 +211,5 @@ __marimo__/
 models/*
 data/audio/*
 transcript.json
+logs
+bert/*
