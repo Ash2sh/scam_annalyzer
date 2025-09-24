@@ -1,6 +1,8 @@
 [app]
 name = "catcha"
 debug = true
+audio_dir = "data/audio/"
+transcript_dir = "data/transcript/"
 
 [logging]
 level = "INFO"
@@ -9,14 +11,14 @@ level = "INFO"
 device = "cuda"  # "cpu" или "cuda"
 
 [whisper]
-download_root="models"
+download_root=".whisper"
 model_name = "small"  # tiny, base, small, medium, large
 
 [diarization]
 model_name = "pyannote/speaker-diarization-3.1"
 
 [dataset]
-train = "data/dataset/test.csv"
+train = "data/dataset/train.csv"
 test = "data/dataset/multi-agent_conversation_all.csv"
 
 [bert]

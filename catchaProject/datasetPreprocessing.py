@@ -18,7 +18,7 @@ def anonymize_text(text: str) -> str:
     Заменяет имена, телефоны, email, цифры и адреса на специальные маркеры.
     """
 
-    text = re.sub(r"SPEAKER_\d+", "[SPEAKER]", text)
+    text = re.sub(r"SPEAKER_\d+|Suspect|Innocent", "[SPEAKER]", text)
 
     # Телефоны
     text = re.sub(r"\+?\d[\d\s\-\(\)]{7,}\d", "[PHONE]", text)
@@ -32,16 +32,29 @@ def anonymize_text(text: str) -> str:
     # Все числа (карты, паспорта и пр.)
     text = re.sub(r' \d[\d,.]*', '[NUMBER]', text)
 
-    # Имена (очень базово: слова с заглавной буквы, кроме начала предложения и служебных слов)
+    # Имена
     text = kp.replace_keywords(text)
 
     return text
 
-def main():
-    data = pd.read_csv("data/dataset/multi-agent_conversation_all.csv")
-    dialogue = data["dialogue"].values
-    for i, text in enumerate(dialogue):
-        text = anonymize_text(text)
-        dialogue[i] = text
+def normalize(data):
+    final = {"dialogue": [], "label": []}
+    for label, content in data.items():
+        if label == "dialogue":
+            for i in content:
+                text = anonymize_text(i)
+                final["dialogue"].append(text)
+        elif label == "label":
+            for i in content:
+                final["label"].append(i)
 
-    pd.DataFrame(data).to_csv("test.csv", index=False)
+    return pd.DataFrame(final)
+
+def main():
+    data1 = pd.read_csv("data/dataset/multi-agent_conversation_all.csv")
+    data2 = pd.read_csv("data/dataset/single-agent-scam-dialogue_all.csv")
+
+    df1 = normalize(data1)
+    df2 = normalize(data2)
+    df_all = pd.concat([df1, df2], ignore_index=True)
+    df_all.to_csv("data/dataset/test.csv", index=False)

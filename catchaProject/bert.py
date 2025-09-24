@@ -81,7 +81,7 @@ def train():
         logging_dir="./logs",
         per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
-        num_train_epochs=1,
+        num_train_epochs=0.7,
         weight_decay=0.01,
         logging_steps=50,
         learning_rate=2e-5,

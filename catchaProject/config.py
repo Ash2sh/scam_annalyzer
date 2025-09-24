@@ -1,8 +1,8 @@
 import os
 import tomllib
-import torch
 
 import pandas as pd
+import torch
 from dotenv import load_dotenv
 
 load_dotenv("config/.env")
@@ -12,6 +12,8 @@ with open("config/config.toml", "rb") as f:
 
 APP_NAME = config["app"]["name"]
 DEBUG_MODE = config["app"]["debug"]
+AUDIO_DIR = config["app"]["audio_dir"]
+TRANSCRIPT_DIR = config["app"]["transcript_dir"]
 
 LOGGING_LEVEL = config["logging"]["level"]
 
@@ -31,5 +33,6 @@ DATASET_TEST = pd.read_csv(config["dataset"]["test"])
 BERT_MODEL = config["bert"]["model"]
 BERT_TOKENIZER = config["bert"]["tokenizer"]
 
-API_KEY = os.getenv("API_KEY")
+LLM_API_KEY = os.getenv("LLM_API_KEY")
 HF_TOKEN = os.getenv("HF_TOKEN")
+BOT_API = os.getenv("BOT_API")
