@@ -11,8 +11,16 @@ from catchaProject.bot import main
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler("logs/bot.log", encoding="utf-8"),
+            logging.StreamHandler(),
+        ],
+    )
     asyncio.run(main())
+
     # audio = Audio("data/audio/videoplayback.m4a")
     # processor = AudioProcessor()
     # processor(audio)

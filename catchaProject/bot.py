@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
@@ -11,14 +12,17 @@ from aiogram.types import (
     Message,
 )
 
-from catchaProject.audioProcessing import AsyncAudioProcessor, Audio
+from catchaProject.audioProcessing import AudioProcessor, Audio
 from catchaProject.checkScam import ScamAnalyzer
 from catchaProject.config import AUDIO_DIR, BOT_API, TRANSCRIPT_DIR
 
 bot = Bot(token=BOT_API)
 dp = Dispatcher()
-processor = AsyncAudioProcessor()
+processor = AudioProcessor()
 sa = ScamAnalyzer()
+
+semaphore = asyncio.Semaphore()
+queue = []
 
 FileLimit = 10_485_760
 
@@ -59,42 +63,47 @@ async def start_audio_processing(call: CallbackQuery, state: FSMContext):
 
 
 async def handle_audio(message: Message, state: FSMContext):
-    userID = message.from_user.id
+    userId = message.from_user.id
     audio = message.audio
     audioId = audio.file_id
     if audio.file_size >= FileLimit:
         await message.answer(f"Аудиофайл должен быть не больше {FileLimit/1048576} MB")
         return
-    path = AUDIO_DIR + audioId
-    await bot.download(audioId, path)
-    await message.answer(f"Аудиофайл '{audio.file_name}' получен. Начинаю обработку...")
 
-    processor.queue.append(userID)
-    while processor.work and processor.queue[0] != userID:
-        await asyncio.sleep(5)
-    processor.work = True
-    audio = Audio(path)
-    processor(audio)
+    queue.append(userId)
+    pos = len(queue)
+    if pos > 1:
+        await message.answer(f"вы {pos}-й в очереди")
+    async with semaphore:
+        path = AUDIO_DIR + audioId
+        await bot.download(audioId, path)
+        await message.answer(f"Аудиофайл '{audio.file_name}' получен. Начинаю обработку...")
+        logging.info(f"Файл {audioId} от {userId} {message.from_user.username}")
 
-    transcriptPath = TRANSCRIPT_DIR + audioId + ".json"
-    audio.save_to_json(transcriptPath)
-    processor.queue.pop(0)
-    processor.work = False
-    try:
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="Начать обработку аудио", callback_data="start_audio"
-                    )
+        audio = Audio(path)
+        processor(audio)
+
+        transcriptPath = TRANSCRIPT_DIR + audioId + ".json"
+        audio.save_to_json(transcriptPath)
+        try:
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="Обработать еще", callback_data="start_audio"
+                        )
+                    ]
                 ]
-            ]
-        )
-        predict = sa.run(transcriptPath)
-        await message.answer(f"Мошенничество: {predict[1]}%", reply_markup=keyboard)
-        await state.set_state(States.start)
-    except RuntimeError:
-        await message.answer("Повторите попытку позже")
+            )
+            predict = sa.run(transcriptPath)
+            answer = f"Мошенничество: {predict[1]}%"
+            logging.info(audioId + " " + answer)
+            await message.answer(answer, reply_markup=keyboard)
+            await state.set_state(States.start)
+        except RuntimeError:
+            await message.answer("Повторите попытку позже")
+
+        queue.pop(0)
 
 
 def register_handlers():
